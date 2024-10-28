@@ -472,14 +472,14 @@ def get_weekly_trend_report(region_code="US", keyword="youtube"):
     
     
 # KEYWORD RESEARCH
-def research_keywords(q, location):
+def research_keywords(q, location, api_key):
     try:
         # Format location
         location = location.replace(" ", "+")  # Replace spaces with +
         search = GoogleSearch({
             "q": q, 
             "location": location,
-            "api_key": "0cf28258c6de799ef8860ac6ae9d47ee0f1b27d7abd793e88474a33288276fca"
+            "api_key": api_key
         })
         result = search.get_dict()
         
@@ -5907,7 +5907,9 @@ elif selected_option == "Keyword Research":
     keyword2 = None  # Initialize keyword2
     if keyword_option == "Compare keywords":
         keyword2 = st.text_input("Enter a second keyword for comparison:")
-        
+
+    if keyword_option == "Research keywords":
+        api_key = st.text_input("Enter your SERPAPI KEY")
         
     # Button to process trending analysis request
     if st.button("Submit keyword for research"):
@@ -5921,7 +5923,7 @@ elif selected_option == "Keyword Research":
                 else:
                     # Call the appropriate function based on the selected option
                     if keyword_option == "Research keywords":
-                        result = research_keywords(keyword, location)
+                        result = research_keywords(keyword, location, api_key)
                         st.success("Processing complete!")
                         st.write(result)  # Display the result
                     elif keyword_option == "Get search volume":
