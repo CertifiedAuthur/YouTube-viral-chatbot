@@ -1,20 +1,17 @@
 import streamlit as st
 from googleapiclient.discovery import build
-import pytz
-import matplotlib.pyplot as plt
-from datetime import datetime
 from google_auth_oauthlib.flow import InstalledAppFlow
+import pytz
 import pandas as pd
 import requests
+from datetime import datetime, timedelta
+from collections import Counter
 from pytrends.request import TrendReq
 from pytrends.exceptions import ResponseError
 from openai import OpenAI
 from serpapi import GoogleSearch
-from datetime import datetime, timedelta
 from fpdf import FPDF
-import requests
 from PIL import Image
-import cv2
 from io import BytesIO
 import numpy as np
 import re
@@ -23,6 +20,8 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
+import matplotlib.pyplot as plt
+
 
 
 
@@ -3103,22 +3102,35 @@ def extract_dominant_colors(img):
     # Simplified color extraction using PIL
     img = img.convert('RGB')
     img = img.resize((150, 150))  # Resize to reduce computation
-    img = np.array(img)
-    dominant_colors = np.mean(img, axis=(0, 1)).astype(int)
-    return dominant_colors
+    img_array = np.array(img)
+    
+    # Flatten the image array and count colors
+    pixels = img_array.reshape(-1, img_array.shape[-1])
+    color_counts = Counter(map(tuple, pixels))
+    most_common_colors = color_counts.most_common(3)  # Get the 3 most common colors
+    return [color for color, count in most_common_colors]
 
 def analyze_composition(img):
-    # Simplified composition analysis using OpenCV
-    img_gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
-    composition = cv2.calcHist([img_gray], [0], None, [256], [0, 256])
-    return composition
+    # Calculate the aspect ratio and dimensions
+    width, height = img.size
+    aspect_ratio = width / height
+    return {
+        "width": width,
+        "height": height,
+        "aspect_ratio": aspect_ratio
+    }
 
 def detect_text_overlay(img):
-    # Simplified text overlay detection using OpenCV
-    img_gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
-    _, thresh = cv2.threshold(img_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    text_overlay = cv2.countNonZero(thresh)
-    return text_overlay
+    # Convert to grayscale and analyze pixel values for text overlay
+    img_gray = img.convert('L')  # Convert to grayscale
+    img_array = np.array(img_gray)
+    
+    # Count the number of white pixels (potential text overlay)
+    white_pixels = np.sum(img_array > 200)  # Assuming text overlay is bright
+    total_pixels = img_array.size
+    text_overlay_ratio = white_pixels / total_pixels
+    
+    return text_overlay_ratio
 
 def thumbnail_improvement(video_id):
     thumbnail_url = extract_thumbnail(video_id)
@@ -3126,7 +3138,7 @@ def thumbnail_improvement(video_id):
     video_title = youtube.videos().list(part="snippet", id=video_id).execute()["items"][0]["snippet"]["title"]
     
     # Craft OpenAI prompt
-    prompt = f"Analyze the thumbnail for YouTube video '{video_title}' (ID: {video_id}) and suggest improvements. Consider the following analysis:\n\nDominant colors: {dominant_colors}\nComposition: {composition}\nText overlay: {text_overlay}\n\nGoals: Increase clicks, engagement."
+    prompt = f"Analyze the thumbnail for YouTube video '{video_title}' (ID: {video_id}) and suggest improvements. Consider the following analysis:\n\nDominant colors: {dominant_colors}\nComposition: {composition}\nText overlay ratio: {text_overlay}\n\nGoals: Increase clicks, engagement."
     
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
@@ -3135,6 +3147,7 @@ def thumbnail_improvement(video_id):
         ]
     )
     return response.choices[0].message.content
+
 
 def get_video_metadata(youtube, video_id):
     """Fetch video metadata using YouTube API"""
