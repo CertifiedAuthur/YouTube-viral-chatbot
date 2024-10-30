@@ -1,6 +1,7 @@
 import streamlit as st
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 import pytz
 import pandas as pd
 import requests
@@ -16,6 +17,7 @@ from io import BytesIO
 import numpy as np
 import re
 import nltk
+import pickle
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -6859,7 +6861,9 @@ elif selected_option == "Performance Insights":
             f.write(uploaded_file.getbuffer())
         
     
-    SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly"]
+    SCOPES = ["https://www.googleapis.com/auth/youtube",
+              "https://www.googleapis.com/auth/yt-analytics.readonly",
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -6867,18 +6871,30 @@ elif selected_option == "Performance Insights":
     API_VERSION = "v2"
     CLIENT_SECRETS_FILE = temp_file_path
 
-    def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+   def get_service():
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
-
+        
     # Allow user to select a performance insight option
     performance_option = st.selectbox(
         "Select the performance insights option:",
@@ -6974,15 +6990,27 @@ elif selected_option == "Basic Earnings Estimates":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     basic_earnings_estimates_option = st.selectbox(
@@ -7002,43 +7030,51 @@ elif selected_option == "Basic Earnings Estimates":
     # Input fields for channel ID, start date, and end date
     if basic_earnings_estimates_option == "Channel Earnings Estimator":
         channel_id = st.text_input("Enter Channel ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date")
+        end_date = col2.date_input("End Date")
         
     if basic_earnings_estimates_option == "Revenue Analysis Report":
         channel_id = st.text_input("Enter Channel ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date")
+        end_date = col2.date_input("End Date")
         
     if basic_earnings_estimates_option == "Monthly Channel Earnings Forecast":
         channel_id = st.text_input("Enter Channel ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date")
+        end_date = col2.date_input("End Date")
         
     if basic_earnings_estimates_option == "Detailed Earnings Breakdown":
         channel_id = st.text_input("Enter Channel ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date")
+        end_date = col2.date_input("End Date")
         
     if basic_earnings_estimates_option == "Channel Earnings Projections":
         channel_id = st.text_input("Enter Channel ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date")
+        end_date = col2.date_input("End Date")
         
     if basic_earnings_estimates_option == "CPM Estimator":
         channel_id = st.text_input("Enter Channel ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date")
+        end_date = col2.date_input("End Date")
     
     if basic_earnings_estimates_option == "URL Earnings Potential":
         video_id = st.text_input("Enter Video ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date")
+        end_date = col2.date_input("End Date")
         
     if basic_earnings_estimates_option == "URL Revenue Potential Analysis":
         video_id = st.text_input("Enter Video ID")
-        start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-        end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Enter Start Date")
+        end_date = col2.date_input("Enter End Date")
     
     
     if st.button("Estimate Basic Earnings"):
@@ -7104,15 +7140,27 @@ elif selected_option == "Revenue Stream Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     Revenue_Stream_Analysis_option = st.selectbox(
@@ -7125,8 +7173,9 @@ elif selected_option == "Revenue Stream Analysis":
     )
     
     channel_id = st.text_input("Enter Channel ID")
-    start_date = st.date_input("Enter Start Date (YYYY-MM-DD)")
-    end_date = st.date_input("Enter End Date (YYYY-MM-DD)")
+    col1, col2 = st.columns(2)
+    start_date = col1.date_input("Enter Start Date")
+    end_date = col2.date_input("Enter End Date")
     
     if st.button("Generate Revenue Stream Analysis"):
         with st.spinner("Processing..."):
@@ -7167,15 +7216,27 @@ elif selected_option == "Earnings by Time Period":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     Earnings_by_Time_Period_option = st.selectbox(
@@ -7195,7 +7256,7 @@ elif selected_option == "Earnings by Time Period":
     channel_id = st.text_input("channel_id")
     col1, col2 = st.columns(2)
     start_date = col1.data_input("Start Date")
-    end_date = col2.data_input("Enter Date")
+    end_date = col2.data_input("End Date")
     
     if Earnings_by_Time_Period_option == "Quarterly Earnings Analysis":
         channel_id = st.text_input("channel_id")
@@ -7277,8 +7338,9 @@ elif selected_option == "Regional Compliance Checks":
             f.write(uploaded_file.getbuffer())
         
     
-    SCOPES = ["https://www.googleapis.com/auth/youtube",
-              "https://www.googleapis.com/auth/yt-analytics.readonly"]
+    SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -7287,15 +7349,27 @@ elif selected_option == "Regional Compliance Checks":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     regional_compliance_checks_option = st.selectbox(
@@ -7422,8 +7496,9 @@ elif selected_option == "Localization":
             f.write(uploaded_file.getbuffer())
         
     
-    SCOPES = ["https://www.googleapis.com/auth/youtube",
-              "https://www.googleapis.com/auth/yt-analytics.readonly"]
+    SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -7432,15 +7507,27 @@ elif selected_option == "Localization":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     localization_option = st.selectbox(
@@ -7535,8 +7622,9 @@ elif selected_option == "Cross-Border Analysis":
             f.write(uploaded_file.getbuffer())
         
     
-    SCOPES = ["https://www.googleapis.com/auth/youtube",
-              "https://www.googleapis.com/auth/yt-analytics.readonly"]
+    SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -7545,15 +7633,27 @@ elif selected_option == "Cross-Border Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     cross_border_analysis_option = st.selectbox(
@@ -7725,7 +7825,9 @@ elif selected_option == "Regional Content Strategy":
             f.write(uploaded_file.getbuffer())
         
     
-    SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly"]
+    SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -7734,15 +7836,27 @@ elif selected_option == "Regional Content Strategy":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     regional_content_strategy_option = st.selectbox(
@@ -7858,7 +7972,8 @@ elif selected_option == "Local Competition Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/youtube"]
+              "https://www.googleapis.com/auth/youtube",
+             "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -7867,15 +7982,27 @@ elif selected_option == "Local Competition Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response) 
         return response
     
     local_competition_analysis_option = st.selectbox(
@@ -8012,7 +8139,8 @@ elif selected_option == "Time Zone-Based Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/youtube"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -8021,15 +8149,27 @@ elif selected_option == "Time Zone-Based Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     time_zone_based_analysis_option = st.selectbox(
@@ -8146,7 +8286,8 @@ elif selected_option == "Geographic Performance Metrics":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/youtube"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -8155,15 +8296,27 @@ elif selected_option == "Geographic Performance Metrics":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     geographic_performance_metrics_option = st.selectbox(
@@ -8261,7 +8414,8 @@ elif selected_option == "Cultural Trend Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/youtube"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -8270,15 +8424,27 @@ elif selected_option == "Cultural Trend Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     cultural_trend_analysis_option = st.selectbox(
@@ -8383,7 +8549,8 @@ elif selected_option == "Market Research Commands":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/youtube"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -8392,15 +8559,27 @@ elif selected_option == "Market Research Commands":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     market_research_command_option = st.selectbox(
@@ -8568,7 +8747,8 @@ elif selected_option == "Language-Based Search":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/youtube"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -8577,15 +8757,27 @@ elif selected_option == "Language-Based Search":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     language_Based_search_option = st.selectbox(
@@ -8681,7 +8873,8 @@ elif selected_option == "Regional Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/youtube"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -8690,15 +8883,27 @@ elif selected_option == "Regional Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     regional_analysis_option = st.selectbox(
@@ -8804,15 +9009,27 @@ elif selected_option == "Regional Performance Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     regional_performance_analysis_option = st.selectbox(
@@ -9018,7 +9235,9 @@ elif selected_option == "Natural Language Queries":
                 f.write(uploaded_file.getbuffer())
             
         
-        SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly"]
+        SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
         # https://developers.google.com/identity/protocols/oauth2/scopes
 
         # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -9027,16 +9246,28 @@ elif selected_option == "Natural Language Queries":
         CLIENT_SECRETS_FILE = temp_file_path
 
         def get_service():
-            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-            credentials = flow.run_local_server()
-            return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
 
-        def execute_api_request(client_library_function, **kwargs):
-            response = client_library_function(
-                **kwargs
-            ).execute()
-            print(response)
-            return response
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
+
+    def execute_api_request(client_library_function, **kwargs):
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
+        return response
         
         video_id = st.text_input("Enter Video ID")
         date_range = st.text_input("format YYYY-MM-DD/YYYY-MM-DD")
@@ -9107,7 +9338,8 @@ elif selected_option == "Advanced Earnings Metrics":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -9116,15 +9348,27 @@ elif selected_option == "Advanced Earnings Metrics":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     advanced_earnings_metrics_option = st.selectbox(
@@ -9145,8 +9389,9 @@ elif selected_option == "Advanced Earnings Metrics":
     
     channel_id = st.text_input("Enter Channel ID")
     video_id = st.text_input("Enter Video ID")
-    start_date = st.text_input("Start Date")
-    end_date = st.text_input("End Date")
+    col1, col2 = st.columns(2)
+    start_date = col1.text_input("Start Date")
+    end_date = col2.text_input("End Date")
     
     if st.button("View Advanced Earnings Metrics"):
         with st.spinner("Generating data..."):
@@ -9219,15 +9464,27 @@ elif selected_option == "Historical Earnings Data":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     historical_earnings_data_option = st.selectbox(
@@ -9314,7 +9571,8 @@ elif selected_option == "Competitive Earnings Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -9323,15 +9581,27 @@ elif selected_option == "Competitive Earnings Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     competitive_earnings_analysis_option = st.selectbox(
@@ -9565,7 +9835,8 @@ elif selected_option == "Revenue Optimization Queries":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -9574,17 +9845,28 @@ elif selected_option == "Revenue Optimization Queries":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
-    
     revenue_optimization_queries_option = st.selectbox(
         "Revenue Optimization Queries:",
         [
@@ -9734,7 +10016,8 @@ elif selected_option == "Audience-Based Revenue Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -9743,15 +10026,27 @@ elif selected_option == "Audience-Based Revenue Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     audience_based_revenue_analysis_option = st.selectbox(
@@ -9828,7 +10123,8 @@ elif selected_option == "Content-Specific Earnings":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -9837,15 +10133,27 @@ elif selected_option == "Content-Specific Earnings":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     content_specific_earnings_option = st.selectbox(
@@ -10020,7 +10328,8 @@ elif selected_option == "Revenue Performance Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -10029,15 +10338,27 @@ elif selected_option == "Revenue Performance Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     revenue_performance_analysis_option = st.selectbox(
@@ -10215,7 +10536,8 @@ elif selected_option == "Monetization Metrics":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -10224,15 +10546,27 @@ elif selected_option == "Monetization Metrics":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     monetization_metrics = st.selectbox(
@@ -10316,7 +10650,8 @@ elif selected_option == "Geographic Revenue Analysis":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -10325,15 +10660,27 @@ elif selected_option == "Geographic Revenue Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     geographic_revenue_analysis = st.selectbox(
@@ -10417,7 +10764,8 @@ elif selected_option == "Report Generation":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -10426,15 +10774,27 @@ elif selected_option == "Report Generation":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     report_generation_option = st.selectbox(
@@ -10519,7 +10879,8 @@ elif selected_option == "Historical Data":
         
     
     SCOPES = ["https://www.googleapis.com/auth/yt-analytics.readonly",
-              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+              "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+             "https://www.googleapis.com/auth/youtube"]
     # https://developers.google.com/identity/protocols/oauth2/scopes
 
     # https://github.com/googleapis/google-api-python-client/blob/main/docs/dyn/index.md
@@ -10528,15 +10889,27 @@ elif selected_option == "Historical Data":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     historical_data_option = st.selectbox(
@@ -10619,15 +10992,27 @@ elif selected_option == "Competition Analysis":
     CLIENT_SECRETS_FILE = temp_file_path
 
     def get_service():
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = flow.run_local_server()
-        return build(API_SERVICE_NAME, API_VERSION, credentials = credentials)
+        # Load credentials from a file if they exist
+        creds = None
+        if 'token.pickle' in st.session_state:
+            creds = pickle.loads(st.session_state['token.pickle'])
+        
+        # If there are no credentials or they are invalid, perform OAuth flow
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
+            
+                # Save the credentials for the next run in the session state
+                st.session_state['token.pickle'] = pickle.dumps(creds)
+
+        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
     def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(
-            **kwargs
-        ).execute()
-        print(response)
+        response = client_library_function(**kwargs).execute()
+        st.write(response)  # Use Streamlit's write function to display the response
         return response
     
     competition_analysis_option = st.selectbox(
