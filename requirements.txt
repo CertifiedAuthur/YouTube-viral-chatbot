@@ -6,7 +6,6 @@ google-auth-oauthlib
 google-auth-httplib2 
 pandas
 pytrends
-python-dotenv
 matplotlip
 seaborn
 plotly
@@ -15,6 +14,5 @@ streamlit
 google-search-results
 fpdf
 Pillow
-opencv-python
 nltk
 scikit-learn
