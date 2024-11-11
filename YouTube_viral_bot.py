@@ -7835,29 +7835,28 @@ elif selected_option == "Regional Content Strategy":
     API_VERSION = "v3"
     CLIENT_SECRETS_FILE = temp_file_path
 
-    def get_service():
-        # Load credentials from a file if they exist
-        creds = None
-        if 'token.pickle' in st.session_state:
-            creds = pickle.loads(st.session_state['token.pickle'])
+def get_service():
+    creds = None
+    if 'token.pickle' in st.session_state:
+        creds = pickle.loads(st.session_state['token.pickle'])
+    
+    # If there are no credentials or they are invalid, perform OAuth flow
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+            creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
         
-        # If there are no credentials or they are invalid, perform OAuth flow
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-                creds = flow.run_local_server(port=0)  # Use a local server for the OAuth flow
-            
-                # Save the credentials for the next run in the session state
-                st.session_state['token.pickle'] = pickle.dumps(creds)
+            # Save the credentials for the next run in the session state
+            st.session_state['token.pickle'] = pickle.dumps(creds)
 
-        return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
+    return build(API_SERVICE_NAME, API_VERSION, credentials=creds)
 
-    def execute_api_request(client_library_function, **kwargs):
-        response = client_library_function(**kwargs).execute()
-        st.write(response)  # Use Streamlit's write function to display the response
-        return response
+def execute_api_request(client_library_function, **kwargs):
+    response = client_library_function(**kwargs).execute()
+    st.write(response)  # Use Streamlit's write function to display the response
+    return response
     
     regional_content_strategy_option = st.selectbox(
         "Regional Content Strategy:",
