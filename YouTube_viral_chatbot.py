@@ -10,7 +10,7 @@ from serpapi import GoogleSearch
 import pytrends
 from googleapiclient.discovery import build
 from openai import OpenAI
-from streamlit_js import st_js, st_js_blocking
+# from streamlit_js import st_js, st_js_blocking
 from google_auth_oauthlib.flow import Flow
 import matplotlib.pyplot as plt
 from newsapi import NewsApiClient
