@@ -5626,30 +5626,6 @@ else:
                     st.error(f"Local competition analysis failed: {str(e)}")
 
 
-# Custom Styling
-st.markdown("""
-    <style>
-        body { background-color: red; padding: 20px; }
-        .section-title { color: #2E8B57; font-size: 30px; font-weight: bold; }
-        .text { font-size: 18px; color: #333; }
-        .stButton>button { background-color: #4CAF50; color: white; padding: 10px 24px; border-radius: 12px; }
-        .stDataFrame { border: 2px solid #2E8B57; border-radius: 10px; }
-    </style>
-""", unsafe_allow_html=True)
-
-
-
-# Instead of using beta_columns, use st.columns
-col1, col2 = st.columns(2)
-
-with col1:
-    st.write("### Left Column: Video Information")
-    st.write("Display video details here.")
-
-with col2:
-    st.write("### Right Column: Video Metrics")
-    st.bar_chart([10000, 500, 200])
-
 
 # Custom Styling
 st.markdown("""
