@@ -17,3 +17,4 @@ Pillow
 nltk
 scikit-learn
 bs4
+newsapi
