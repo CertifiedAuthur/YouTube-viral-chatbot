@@ -16,3 +16,4 @@ fpdf
 Pillow
 nltk
 scikit-learn
+bs4
