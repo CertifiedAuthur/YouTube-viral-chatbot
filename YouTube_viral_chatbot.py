@@ -4230,7 +4230,7 @@ elif st.session_state.get("video_url") is None:
             st.success(f"Video URL successfully analyzed: {video_url_input}")
             st.rerun()
         else:
-            st.errro("Invalid YouTube Video URL. Please try again.")    
+            st.error("Invalid YouTube Video URL. Please try again.")    
                                          
    
     
