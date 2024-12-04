@@ -26,6 +26,22 @@ import base64
 import re
 
 
+import streamlit as st
+
+# Custom CSS for background color
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #ADD8E6; /* Light blue background color */
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
 submitted = False  # Define it globally or within a function
 
 def on_submit():
