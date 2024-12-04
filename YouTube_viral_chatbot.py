@@ -4177,7 +4177,7 @@ import streamlit as st
 # Check if the API key has been entered
 if st.session_state.get("api_key") is None:
     # Hide the sidebar when API key is not entered
-    st.title("YouTube Viral ChatBots")
+    st.title("YouTube Viral ChatBot")
     st.write("""
         Please input your YouTube API key below to get started with analyzing videos and channels.
     """)
